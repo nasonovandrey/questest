@@ -22,8 +22,7 @@ def navigate_tree(tree: TreeNode):
     current_node = tree
 
     while True:
-        # Clear the screen
-        print("\033[H\033[J")
+        clear_screen()
         if current_node.children:
             print_current_node(current_node)
             choice = get_valid_choice(len(current_node.children))
@@ -45,6 +44,10 @@ def navigate_tree(tree: TreeNode):
                 return current_node.parent.name, current_node.name
 
 
+def clear_screen():
+    print("\033[H\033[J")
+
+
 def breakpoint_insert(contents):
     breakpoint_line = "breakpoint()  # Inserted by navigate_tree"
     code_lines = contents.split("\n")
@@ -54,15 +57,13 @@ def breakpoint_insert(contents):
     indent = "    "
 
     while True:
-        # Clear the screen
-        print("\033[H\033[J")
+        clear_screen()
 
-        # Display the code lines
         for line in code_lines:
             print(line)
 
         key = input(
-            "\nUse 'w' to move up, 's' to move down, 'd' to mode right, 'a' to move left, 'i' to insert, 'n' to just run test as is without breakpoints and 'b' to go back: "
+            "\nUse 'w' to move up \n's' to move down \n'd' to mode right \n'a' to move left \n'i' to insert a breakpoint \n'n' to run test without insertion \n'b' to go back: "
         ).lower()
 
         if key == "w" and current_line > 1:
@@ -96,16 +97,11 @@ def breakpoint_insert(contents):
 
 
 def edit_file(filename, start_line, end_line, new_contents):
-    try:
-        with open(filename, "r") as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        print(f"File '{filename}' not found.")
-        return
+    with open(filename, "r") as file:
+        lines = file.readlines()
 
-    if start_line < 1 or end_line > len(lines) + 1:
-        print("Invalid start or end line numbers.")
-        return
+    if start_line < 0 or end_line > len(lines):
+        raise IndexError(f"Invalid start or end line numbers: {start_line}, {end_line}.")
 
     lines = [line.rstrip("\n") for line in lines]
 

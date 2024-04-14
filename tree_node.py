@@ -27,3 +27,6 @@ class TreeNode:
         for child in self.children:
             lines.extend(child.__repr__(indent + 2).splitlines())
         return "\n".join(lines)
+
+    def __getitem__(self, ind: int):
+        return self.children[ind]
