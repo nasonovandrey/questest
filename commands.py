@@ -28,7 +28,7 @@ def clean(directory):
 def run(directory):
     tree = build_tree(Path(directory))
     filename, testname = navigate_tree(tree)
-    command = f"ipytest --pdb -- -k '{testname}' {filename}"
+    command = f"pytest --pdb --pdbcls=IPython.terminal.debugger:TerminalPdb {filename}::{testname}"
     subprocess.run(command, shell=True)
 
 
