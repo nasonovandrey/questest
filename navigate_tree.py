@@ -1,37 +1,40 @@
+import curses
+import ast
+
 from tree_node import TreeNode
 
 
-def print_current_node(node):
-    print("Available children:")
+def print_current_node(stdscr, node, selected_index):
+    stdscr.clear()
+    stdscr.addstr("Available children:\n")
     for i, child in enumerate(node.children, start=1):
-        print(f"{i}. {child.name}")
-
-
-def get_valid_choice(num_choices):
-    while True:
-        choice = input(f"Enter your choice (1-{num_choices} or 'b' to go back): ").strip()
-        if choice == "b":
-            return choice
-        elif choice.isdigit() and 1 <= int(choice) <= num_choices:
-            return choice
+        if i - 1 == selected_index:
+            stdscr.addstr(f"> {i}. {child.name}\n", curses.A_REVERSE)
         else:
-            print("Invalid choice, try again.")
+            stdscr.addstr(f"  {i}. {child.name}\n")
 
 
-def navigate_tree(tree: TreeNode):
+def navigate_tree(stdscr, tree: TreeNode):
     current_node = tree
+    selected_index = 0
 
     while True:
-        clear_screen()
         if current_node.children:
-            print_current_node(current_node)
-            choice = get_valid_choice(len(current_node.children))
-            if choice == "b":
-                current_node = current_node.parent
-            else:
-                current_node = current_node.children[int(choice) - 1]
+            print_current_node(stdscr, current_node, selected_index)
+            stdscr.refresh()
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                selected_index = max(0, selected_index - 1)
+            elif key == curses.KEY_DOWN:
+                selected_index = min(len(current_node.children) - 1, selected_index + 1)
+            elif key == ord("b"):
+                if current_node.parent:
+                    current_node = current_node.parent
+            elif key == curses.KEY_ENTER or key in [10, 13]:
+                current_node = current_node.children[selected_index]
+            stdscr.refresh()
         else:
-            result = breakpoint_insert(current_node.contents)
+            result = breakpoint_insert(stdscr, current_node.contents)
             if result is None:
                 current_node = current_node.parent
             elif result is not None:
@@ -44,52 +47,66 @@ def navigate_tree(tree: TreeNode):
                 return current_node.parent.name, current_node.name
 
 
-def clear_screen():
-    print("\033[H\033[J")
-
-
-def breakpoint_insert(contents):
-    breakpoint_line = "breakpoint()  # Inserted by navigate_tree"
+def breakpoint_insert(stdscr, contents):
+    breakpoint_line = "breakpoint() # Inserted by navigate_tree"
     code_lines = contents.split("\n")
     code_lines.insert(1, breakpoint_line)
     num_lines = len(code_lines)
     current_line = 1
     indent = "    "
+    help_info = "\nUse arrows to move, \nenter to insert a breakpoint and run, \n'n' to run test without insertion \n'b' to go back: "
 
     while True:
-        clear_screen()
-
+        stdscr.clear()
+        height, width = stdscr.getmaxyx()
+        line_num = 1
         for line in code_lines:
-            print(line)
+            if line_num == current_line:
+                stdscr.addstr(line + "\n", curses.A_REVERSE)
+            else:
+                stdscr.addstr(line + "\n")
+            line_num += 1
 
-        key = input(
-            "\nUse 'w' to move up \n's' to move down \n'd' to mode right \n'a' to move left \n'i' to insert a breakpoint \n'n' to run test without insertion \n'b' to go back: "
-        ).lower()
+        stdscr.addstr(help_info)
+        stdscr.refresh()
 
-        if key == "w" and current_line > 1:
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP and current_line > 1:
             code_lines[current_line], code_lines[current_line - 1] = (
                 code_lines[current_line - 1],
                 breakpoint_line,
             )
             current_line -= 1
-        elif key == "s" and current_line < num_lines - 1:
+        elif key == curses.KEY_DOWN and current_line < num_lines - 1:
             code_lines[current_line], code_lines[current_line + 1] = (
                 code_lines[current_line + 1],
                 breakpoint_line,
             )
             current_line += 1
-        elif key == "d":
+        elif key == curses.KEY_RIGHT:
             breakpoint_line = indent + breakpoint_line
             code_lines[current_line] = breakpoint_line
-        elif key == "a" and breakpoint_line.startswith(indent):
-            breakpoint_line = breakpoint_line[4:]
+        elif key == curses.KEY_LEFT and breakpoint_line.startswith(indent):
+            breakpoint_line = breakpoint_line[len(indent) :]
             code_lines[current_line] = breakpoint_line
-        elif key == "i" or key == "b" or key == "n":
+        elif key == curses.KEY_ENTER or key in [10, 13]:
+            if is_valid_function_definition("\n".join(code_lines)):
+                break
+            else:
+                stdscr.move(height - 1, 0)  # Move cursor to bottom of screen
+                stdscr.clrtoeol()  # Clear the line
+                stdscr.addstr("Invalid breakpoint placement")
+                stdscr.getch()  # Wait for user input before continuing
+                stdscr.move(0, 0)  # Move cursor back to top
+        elif key == ord("b") or key == ord("n"):
             break
 
-    if key == "b":
+        stdscr.refresh()
+
+    if key == ord("b"):
         return None
-    if key == "n":
+    if key == ord("n"):
         return contents
 
     updated_contents = "\n".join(code_lines)
@@ -113,3 +130,14 @@ def edit_file(filename, start_line, end_line, new_contents):
     print(
         f"Contents replaced successfully from line {start_line} to line {end_line} in '{filename}'."
     )
+
+def is_valid_function_definition(contents):
+    try:
+        tree = ast.parse(contents)
+        if len(tree.body) == 1 and isinstance(tree.body[0], ast.FunctionDef):
+            return True
+        else:
+            return False
+    except SyntaxError:
+        return False
+
