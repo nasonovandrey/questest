@@ -1,3 +1,4 @@
+import curses
 import subprocess
 from pathlib import Path
 
@@ -26,8 +27,13 @@ def clean(directory):
 
 
 def run(directory):
-    tree = build_tree(Path(directory))
-    filename, testname = navigate_tree(tree)
+    def run_wrapper(stdscr):
+        tree = build_tree(Path(directory))
+        filename, testname = navigate_tree(stdscr, tree)
+        return filename, testname
+
+    filename, testname = curses.wrapper(run_wrapper)
+
     command = f"pytest --pdb --pdbcls=IPython.terminal.debugger:TerminalPdb {filename}::{testname}"
     subprocess.run(command, shell=True)
 
