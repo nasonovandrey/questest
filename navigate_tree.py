@@ -1,5 +1,5 @@
-import curses
 import ast
+import curses
 
 from tree_node import TreeNode
 
@@ -131,6 +131,7 @@ def edit_file(filename, start_line, end_line, new_contents):
         f"Contents replaced successfully from line {start_line} to line {end_line} in '{filename}'."
     )
 
+
 def is_valid_function_definition(contents):
     try:
         tree = ast.parse(contents)
@@ -140,4 +141,3 @@ def is_valid_function_definition(contents):
             return False
     except SyntaxError:
         return False
-
