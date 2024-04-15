@@ -1,7 +1,7 @@
 import ast
 import curses
 
-from tree_node import TreeNode
+from questest.tree_node import TreeNode
 
 
 def print_current_node(stdscr, node, selected_index):

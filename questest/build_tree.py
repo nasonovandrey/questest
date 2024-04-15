@@ -2,7 +2,7 @@ import ast
 from pathlib import Path
 from typing import List, Optional
 
-from tree_node import TreeNode
+from questest.tree_node import TreeNode
 
 
 def get_function_definitions(file_path: Path) -> List[TreeNode]:

@@ -2,8 +2,8 @@ import curses
 import subprocess
 from pathlib import Path
 
-from build_tree import build_tree
-from navigate_tree import navigate_tree
+from questest.build_tree import build_tree
+from questest.navigate_tree import navigate_tree
 
 dump_filename = ".prev_command"
 
